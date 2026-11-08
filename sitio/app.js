@@ -88,148 +88,246 @@ function montarFiltros() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// RLR · el árbol
-const W = 236, H = 104, SEP_X = 22, SEP_Y = 76;
+// RLR · el árbol en canvas: los 47,735 puestos sin que la computadora sufra.
+// Se dibuja solo lo que cabe en la pantalla y con tres niveles de detalle: puntos de lejos, tarjetas a media distancia,
+// tarjetas con texto de cerca. Los hijos colapsados se apilan en columnas; lo generado por plantilla va en lista anidada.
+const W = 236, H = 104, SEP_X = 22, SEP_Y = 76, IND = 28, GAP_COL = 16, GAP_FILA = 20, R = 12, CELDA = 1000;
 const abiertos = new Set();
 function abrirHasta(nivel) { abiertos.clear(); for (const x of PUESTOS) if (x.n < nivel) abiertos.add(x.id); }
+function abrirTodo() {
+  abiertos.clear(); const pila = [raiz.id];
+  while (pila.length) { const id = pila.pop(); const hs = hijos(id); if (!hs.length) continue; abiertos.add(id); for (const h of hs) pila.push(h.id); }
+}
 abrirHasta(2);
-let svg, g, gL, gN, zoom, ultimaRaiz = null, idAbierto = null;
+let lienzo, ctx, dpr = 1, zoom, T = d3.zoomIdentity, nodos = [], ligas = [], rejilla = new Map(), ultimaRaiz = null, idAbierto = null, idHover = null, pedido = 0;
+const FUENTE_T = "700 13px Inter, system-ui, sans-serif", FUENTE_K = "400 11.5px Inter, system-ui, sans-serif", FUENTE_P = "600 10.5px Inter, system-ui, sans-serif", FUENTE_N = "700 11px Inter, system-ui, sans-serif";
+
 function montarArbol() {
-  svg = d3.select("#lienzo"); g = svg.append("g"); gL = g.append("g"); gN = g.append("g");
-  zoom = d3.zoom().scaleExtent([0.03, 3]).on("zoom", (e) => g.attr("transform", e.transform));
-  svg.call(zoom).on("dblclick.zoom", null);
-  svg.node().addEventListener("click", (e) => {
-    const t = e.target.closest("[data-accion]"); if (!t) return;
-    const id = t.closest("[data-id]")?.dataset.id || t.dataset.id; if (!id) return;
-    if (t.dataset.accion === "abrir") abrir(id);
-    if (t.dataset.accion === "toggle") { abiertos.has(id) ? cerrarRama(id) : abiertos.add(id); pintarArbol(id); }
+  lienzo = $("#lienzo"); ctx = lienzo.getContext("2d");
+  const medidas = () => { dpr = Math.min(2, window.devicePixelRatio || 1); lienzo.width = Math.round(lienzo.clientWidth * dpr); lienzo.height = Math.round(lienzo.clientHeight * dpr); dibujar(); };
+  new ResizeObserver(() => { if ($("#v-arbol").classList.contains("activa")) { medidas(); ajustar(false); } }).observe($("#v-arbol"));
+  medidas();
+  zoom = d3.zoom().scaleExtent([0.0004, 3]).on("zoom", (e) => { T = e.transform; dibujar(); });
+  d3.select(lienzo).call(zoom).on("dblclick.zoom", null);
+  lienzo.addEventListener("click", (e) => {
+    const h = enPunto(e); if (!h) return;
+    if (h.toggle) { abiertos.has(h.n.p.id) ? cerrarRama(h.n.p.id) : abiertos.add(h.n.p.id); pintarArbol(h.n.p.id); }
+    else abrir(h.n.p.id);
   });
+  lienzo.addEventListener("mousemove", (e) => {
+    const h = enPunto(e), id = h ? h.n.p.id : null;
+    lienzo.style.cursor = h ? "pointer" : "";
+    if (id !== idHover) { idHover = id; dibujar(); }
+  });
+  lienzo.addEventListener("mouseleave", () => { if (idHover) { idHover = null; dibujar(); } });
   $("#ajustar").addEventListener("click", () => ajustar(true));
   const hasta = $("#hasta");
-  hasta.innerHTML = [1, 2, 3, 4, 5].map((n) => `<option value="${n}" ${n === 2 ? "selected" : ""}>${n} · ${NIVELES[n]}</option>`).join("");
-  hasta.addEventListener("change", () => { abrirHasta(+hasta.value); pintarArbol(); ajustar(true); });
+  hasta.innerHTML = [1, 2, 3, 4, 5].map((n) => `<option value="${n}" ${n === 2 ? "selected" : ""}>${n} · ${NIVELES[n]}</option>`).join("") + `<option value="9">Todos los puestos</option>`;
+  hasta.addEventListener("change", () => { if (hasta.value === "9") return desplegarTodo(); abrirHasta(+hasta.value); pintarArbol(); ajustar(true); });
+  $("#todos").addEventListener("click", desplegarTodo);
   $("#colapsar").addEventListener("click", () => { abrirHasta(1); hasta.value = "1"; pintarArbol(); ajustar(true); });
   $("#gigante").addEventListener("click", () => {
     document.body.classList.toggle("gigante");
     if (document.body.classList.contains("gigante")) document.documentElement.requestFullscreen?.().catch(() => {});
     else if (document.fullscreenElement) document.exitFullscreen?.();
-    setTimeout(() => ajustar(true), 120);
+    setTimeout(() => { medidas(); ajustar(true); }, 150);
   });
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) document.body.classList.remove("gigante"); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (document.body.classList.contains("gigante")) document.body.classList.remove("gigante"); cerrarFicha(); } });
   $("#leyenda").innerHTML = Object.entries(ESTATUS).map(([k, e]) => `<div><i style="background:${e.c}"></i>${e.n}</div>`).join("") + `<div class="sep"></div>` +
     Object.values(SECTORES).map((s) => `<div><i class="sq" style="background:${s.c}"></i>${s.n} · ${esc(s.lado)}</div>`).join("") +
     `<div class="sep"></div><div><i style="background:transparent;border:1px dashed #9aa1ad;border-radius:0;width:14px;height:0"></i>Línea punteada: vigila o confirma, no manda</div>`;
-  new ResizeObserver(() => { if ($("#v-arbol").classList.contains("activa")) ajustar(false); }).observe($("#v-arbol"));
+  if (document.fonts?.ready) document.fonts.ready.then(() => { cacheLineas.clear(); dibujar(); });
+}
+async function desplegarTodo() {
+  const capa = $("#capa"); capa.hidden = false; capa.querySelector("b").textContent = fmt(TOTAL);
+  await new Promise((r) => setTimeout(r, 60));
+  abrirTodo(); $("#hasta").value = "9"; pintarArbol();
+  capa.hidden = true; ajustar(true, 1600);
 }
 function cerrarRama(id) { abiertos.delete(id); for (const h of hijos(id)) if (abiertos.has(h.id)) cerrarRama(h.id); }
 function jerarquia() {
-  const mk = (x) => ({ p: x, children: abiertos.has(x.id) ? hijos(x.id).map(mk) : null });
+  const mk = (x) => { const hs = hijos(x.id); return { p: x, nh: hs.length, children: abiertos.has(x.id) && hs.length ? hs.map(mk) : null }; };
   return mk(raiz);
 }
-// RLR · acomodo compacto: los hijos que no están desplegados se listan en columnas bajo su jefe;
-// los desplegados van uno al lado del otro. Así el lienzo crece hacia abajo y no solo a lo ancho.
-const IND = 28, GAP_COL = 16, GAP_FILA = 20;
+// Acomodo: hoja · lista (hijos colapsados en columnas) · anidada (plantilla, en vertical con sangría) · horizontal (desplegados lado a lado)
+const columnas = (k) => (k <= 8 ? 1 : Math.min(10, Math.ceil(Math.sqrt(k / 2))));
 function medir(n) {
-  if (!n.children || !n.children.length) { n.w = W; n.h = H; n.modo = "hoja"; return n; }
-  if (!n.children.some((c) => c.children && c.children.length)) {
-    const k = n.children.length, cols = k <= 8 ? 1 : k <= 16 ? 2 : k <= 24 ? 3 : 4;
+  const hs = n.children;
+  if (!hs || !hs.length) { n.w = W; n.h = H; n.modo = "hoja"; return n; }
+  if (!hs.some((c) => c.children && c.children.length)) {
+    const k = hs.length, cols = columnas(k);
     n.modo = "lista"; n.cols = cols; n.filas = Math.ceil(k / cols);
-    n.w = Math.max(W, IND + cols * W + (cols - 1) * GAP_COL);
-    n.h = H + SEP_Y / 2 + n.filas * (H + GAP_FILA);
+    n.w = Math.max(W, IND + cols * W + (cols - 1) * GAP_COL); n.h = H + SEP_Y / 2 + n.filas * (H + GAP_FILA);
     return n;
   }
-  n.modo = "horizontal";
-  let w = 0; for (const c of n.children) { medir(c); w += c.w; } w += (n.children.length - 1) * SEP_X;
-  n.w = Math.max(W, w); n.h = H + SEP_Y + Math.max(...n.children.map((c) => c.h));
-  return n;
+  if (hs.some((c) => c.p.generado)) {
+    // Lista anidada: en vertical con sangría; si son muchos, en columnas para que no salga una aguja de kilómetros
+    n.modo = "anidada"; const cols = columnas(hs.length), filas = Math.ceil(hs.length / cols); let colW = W;
+    for (const c of hs) { medir(c); colW = Math.max(colW, c.w); }
+    n.cols = cols; n.filas = filas; n.colW = colW; n.altos = [];
+    for (let f = 0; f < filas; f++) { let m = 0; for (let c = 0; c < cols; c++) { const h = hs[f * cols + c]; if (h) m = Math.max(m, h.h); } n.altos.push(m); }
+    n.w = Math.max(W, IND + cols * colW + (cols - 1) * GAP_COL); n.h = H + SEP_Y / 2 + n.altos.reduce((a, b) => a + b + GAP_FILA, 0) - GAP_FILA; return n;
+  }
+  n.modo = "horizontal"; let w = 0, hmax = 0;
+  for (const c of hs) { medir(c); w += c.w; hmax = Math.max(hmax, c.h); }
+  w += (hs.length - 1) * SEP_X; n.w = Math.max(W, w); n.h = H + SEP_Y + hmax; return n;
 }
 function colocar(n, x0, y) {
-  n.x = x0 + n.w / 2; n.y = y;
-  if (n.modo === "hoja") return;
-  if (n.modo === "lista") {
-    const bloque = IND + n.cols * W + (n.cols - 1) * GAP_COL, left = x0 + (n.w - bloque) / 2;
-    n.left = left;
-    n.children.forEach((c, i) => { const col = Math.floor(i / n.filas), fila = i % n.filas; c.col = col; c.x = left + IND + col * (W + GAP_COL) + W / 2; c.y = y + H + SEP_Y / 2 + fila * (H + GAP_FILA); c.w = W; c.h = H; c.modo = "hoja"; });
+  n.y = y; n.x0 = x0;
+  if (n.modo === "anidada") {
+    n.x = x0 + W / 2; let cy = y + H + SEP_Y / 2;
+    n.children.forEach((c, i) => { const col = i % n.cols, fila = Math.floor(i / n.cols); c.col = col; if (col === 0 && fila > 0) cy += n.altos[fila - 1] + GAP_FILA; colocar(c, x0 + IND + col * (n.colW + GAP_COL), cy); });
     return;
   }
+  if (n.modo === "lista") {
+    const bloque = IND + n.cols * W + (n.cols - 1) * GAP_COL, left = n.p.generado ? x0 : x0 + (n.w - bloque) / 2;
+    n.x = n.p.generado ? x0 + W / 2 : x0 + n.w / 2; n.left = left;
+    n.children.forEach((c, i) => { const col = Math.floor(i / n.filas), fila = i % n.filas; c.col = col; c.x = left + IND + col * (W + GAP_COL) + W / 2; c.y = y + H + SEP_Y / 2 + fila * (H + GAP_FILA); c.w = W; c.h = H; c.modo = "hoja"; c.x0 = c.x - W / 2; });
+    return;
+  }
+  if (n.modo === "hoja") { n.x = x0 + W / 2; return; }
+  n.x = x0 + n.w / 2;
   let cx = x0 + (n.w - (n.children.reduce((s, c) => s + c.w, 0) + (n.children.length - 1) * SEP_X)) / 2;
   for (const c of n.children) { colocar(c, cx, y + H + SEP_Y); cx += c.w + SEP_X; }
 }
 function aplanar(n, out = []) { out.push(n); if (n.children) for (const c of n.children) aplanar(c, out); return out; }
+// Ligas: curvas entre niveles horizontales; troncos con codos para listas y anidadas
 function ligasDe(n, out = []) {
   if (!n.children) return out;
-  const ap = (x) => filtroActivo() && !pasa(x);
   if (n.modo === "lista") {
     const yb = n.y + H + SEP_Y / 4, tx = (col) => n.left + col * (W + GAP_COL) + IND / 2;
-    out.push({ k: n.p.id + ":cab", d: `M${n.x},${n.y + H}V${yb}` + (n.cols > 1 ? `M${Math.min(n.x, tx(0))},${yb}H${Math.max(n.x, tx(n.cols - 1))}` : `M${n.x},${yb}H${tx(0)}`), ap: ap(n.p) });
-    for (let col = 0; col < n.cols; col++) {
-      const ult = n.children.filter((c) => c.col === col).pop(); if (!ult) continue;
-      out.push({ k: n.p.id + ":tronco" + col, d: `M${tx(col)},${yb}V${ult.y + H / 2}`, ap: ap(n.p) });
-    }
-    for (const c of n.children) out.push({ k: c.p.id, d: `M${tx(c.col)},${c.y + H / 2}H${c.x - W / 2}`, pt: c.p.punteada, ap: ap(c.p) && ap(n.p) });
+    out.push({ pts: [[n.x, n.y + H], [n.x, yb]], a: n.p, b: n.p });
+    out.push({ pts: [[Math.min(n.x, tx(0)), yb], [Math.max(n.x, tx(n.cols - 1)), yb]], a: n.p, b: n.p });
+    for (let col = 0; col < n.cols; col++) { const ult = n.children.filter((c) => c.col === col).pop(); if (ult) out.push({ pts: [[tx(col), yb], [tx(col), ult.y + H / 2]], a: n.p, b: n.p }); }
+    for (const c of n.children) out.push({ pts: [[tx(c.col), c.y + H / 2], [c.x - W / 2, c.y + H / 2]], pt: c.p.punteada, a: n.p, b: c.p });
+  } else if (n.modo === "anidada") {
+    const tx = (col) => n.x0 + IND / 2 + col * (n.colW + GAP_COL), yb = n.y + H + SEP_Y / 4;
+    if (n.cols > 1) { out.push({ pts: [[tx(0), n.y + H], [tx(0), yb], [tx(n.cols - 1), yb]], a: n.p, b: n.p }); }
+    for (let col = 0; col < n.cols; col++) { const ult = n.children.filter((c) => c.col === col).pop(); if (ult) out.push({ pts: [[tx(col), col === 0 && n.cols === 1 ? n.y + H : yb], [tx(col), ult.y + H / 2]], a: n.p, b: n.p }); }
+    for (const c of n.children) { out.push({ pts: [[tx(c.col), c.y + H / 2], [c.x - W / 2, c.y + H / 2]], a: n.p, b: c.p }); ligasDe(c, out); }
   } else {
-    for (const c of n.children) {
-      const y0 = n.y + H, ym = (y0 + c.y) / 2;
-      out.push({ k: c.p.id, d: `M${n.x},${y0}C${n.x},${ym} ${c.x},${ym} ${c.x},${c.y}`, pt: c.p.punteada, ap: ap(c.p) && ap(n.p) });
-      ligasDe(c, out);
-    }
+    for (const c of n.children) { out.push({ curva: [n.x, n.y + H, c.x, c.y], pt: c.p.punteada, a: n.p, b: c.p }); ligasDe(c, out); }
   }
   return out;
 }
-function tarjetaHTML(x) {
-  const e = estatusDe(x), p = estado[x.id], s = SECTORES[x.s], t = total(x.id);
-  const clases = ["tarjeta", "e-" + e, filtroActivo() ? (pasa(x) ? "coincide" : "apagada") : "", idAbierto === x.id ? "abierta" : ""].filter(Boolean).join(" ");
-  const medio = e === "contratado" && p?.nombre
-    ? `<div class="persona">${p.foto ? `<img src="${esc(p.foto)}" alt=""/>` : `<span class="ini">${esc(iniciales(p.nombre))}</span>`}<span>${esc(p.nombre)}</span></div>`
-    : `<div class="kpi">${esc(x.kpi)}</div>`;
-  return `<div xmlns="http://www.w3.org/1999/xhtml" class="${clases}" data-id="${esc(x.id)}" style="--c:${s.c}">` +
-    `<span class="punto" data-accion="abrir" title="${esc(ESTATUS[e].n)}"></span>` +
-    `<div class="cuerpo" data-accion="abrir" style="display:flex;flex-direction:column;gap:3px;height:100%"><div class="titulo">${esc(x.t)}</div>${medio}` +
-    `<div class="pie"><span><b>${x.n}</b> · ${esc(NIVELES[x.n])}</span><span>${t > 1 ? fmt(t) + " plazas" : "Ola " + x.ola}</span></div></div></div>`;
-}
-const iniciales = (n) => String(n).split(/\s+/).slice(0, 2).map((w) => w[0] || "").join("").toUpperCase();
 function pintarArbol(centrarEn) {
-  if (!svg) return;
-  const root = medir(jerarquia()); colocar(root, 0, 0);
-  ultimaRaiz = root;
-  const nodos = aplanar(root), ligas = ligasDe(root);
-  gL.selectAll("path").data(ligas, (d) => d.k).join("path")
-    .attr("class", (d) => "liga" + (d.pt ? " punteada" : "") + (d.ap ? " apagada" : ""))
-    .attr("d", (d) => d.d);
-  const sel = gN.selectAll("g.nodo").data(nodos, (d) => d.p.id).join((enter) => {
-    const gg = enter.append("g").attr("class", "nodo");
-    gg.append("foreignObject").attr("width", W).attr("height", H).attr("x", -W / 2).attr("y", 0);
-    const tg = gg.append("g").attr("class", "toggle").attr("data-accion", "toggle").attr("transform", `translate(0,${H})`);
-    tg.append("circle").attr("r", 12);
-    tg.append("text");
-    return gg;
-  });
-  sel.attr("transform", (d) => `translate(${d.x},${d.y})`);
-  sel.select("foreignObject").html((d) => tarjetaHTML(d.p));
-  sel.select("g.toggle").attr("data-id", (d) => d.p.id).each(function (d) {
-    const n = hijos(d.p.id).length, ab = abiertos.has(d.p.id);
-    d3.select(this).style("display", n ? null : "none").classed("abierto", ab).select("text").text(ab ? "−" : n);
-  });
+  if (!ctx) return;
+  const root = medir(jerarquia()); colocar(root, 0, 0); ultimaRaiz = root;
+  nodos = aplanar(root); ligas = ligasDe(root);
+  rejilla = new Map();
+  for (const n of nodos) {
+    const cx0 = Math.floor((n.x - W / 2) / CELDA), cx1 = Math.floor((n.x + W / 2) / CELDA), cy0 = Math.floor(n.y / CELDA), cy1 = Math.floor((n.y + H + R) / CELDA);
+    for (let i = cx0; i <= cx1; i++) for (let j = cy0; j <= cy1; j++) { const k = i + "," + j; let c = rejilla.get(k); if (!c) rejilla.set(k, (c = [])); c.push(n); }
+  }
+  $("#cuenta").textContent = `${fmt(nodos.length)} a la vista`;
+  dibujar();
   if (centrarEn) { const n = nodos.find((d) => d.p.id === centrarEn); if (n) ajustarA(n); }
 }
-function limites(nodos) {
-  const xs = nodos.map((d) => d.x), ys = nodos.map((d) => d.y);
-  return { x0: Math.min(...xs) - W / 2, x1: Math.max(...xs) + W / 2, y0: Math.min(...ys), y1: Math.max(...ys) + H };
+function enPunto(e) {
+  const [mx, my] = d3.pointer(e, lienzo), wx = (mx - T.x) / T.k, wy = (my - T.y) / T.k;
+  const celda = rejilla.get(Math.floor(wx / CELDA) + "," + Math.floor(wy / CELDA)); if (!celda) return null;
+  const r = Math.max(R, 6 / T.k);
+  for (const n of celda) {
+    if (n.nh && (wx - n.x) ** 2 + (wy - (n.y + H)) ** 2 <= r * r) return { n, toggle: true };
+    if (wx >= n.x - W / 2 && wx <= n.x + W / 2 && wy >= n.y && wy <= n.y + H) return { n };
+  }
+  return null;
 }
-function ajustar(animar) {
-  if (!ultimaRaiz) return;
-  const el = svg.node(), ancho = el.clientWidth, alto = el.clientHeight; if (!ancho || !alto) return;
-  const b = limites(aplanar(ultimaRaiz)), bw = b.x1 - b.x0 + 60, bh = b.y1 - b.y0 + 60;
-  const k = Math.min(ancho / bw, alto / bh, 1.1);
+function dibujar() { if (pedido || !ctx) return; pedido = requestAnimationFrame(() => { pedido = 0; render(); }); }
+const cacheLineas = new Map();
+function lineas(txt, fuente, maxW, maxL) {
+  const llave = fuente + "|" + maxW + "|" + txt; const hecho = cacheLineas.get(llave); if (hecho) return hecho;
+  ctx.font = fuente; const out = []; let actual = "";
+  for (const w of String(txt).split(" ")) { const prueba = actual ? actual + " " + w : w; if (ctx.measureText(prueba).width <= maxW || !actual) actual = prueba; else { out.push(actual); actual = w; } }
+  if (actual) out.push(actual);
+  if (out.length > maxL) { out.length = maxL; let u = out[maxL - 1]; while (u.length > 1 && ctx.measureText(u + "…").width > maxW) u = u.slice(0, -1); out[maxL - 1] = u + "…"; }
+  cacheLineas.set(llave, out); return out;
+}
+const imgs = new Map();
+function imagen(url) { let i = imgs.get(url); if (!i) { i = new Image(); i.src = url; i.onload = () => dibujar(); imgs.set(url, i); } return i.complete && i.naturalWidth ? i : null; }
+function caja(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function render() {
+  const k = T.k, ancho = lienzo.clientWidth, alto = lienzo.clientHeight, filtro = filtroActivo();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, ancho, alto);
+  ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * T.x, dpr * T.y);
+  const vx0 = -T.x / k - W, vy0 = -T.y / k - H - R, vx1 = vx0 + ancho / k + 2 * W, vy1 = vy0 + alto / k + 2 * H;
+  const dentro = (x, y) => x >= vx0 && x <= vx1 && y >= vy0 && y <= vy1;
+  if (k > 0.02) {
+    ctx.lineWidth = Math.max(1.6, 1.1 / k); ctx.lineCap = "round";
+    for (const l of ligas) {
+      const p = l.pts || [[l.curva[0], l.curva[1]], [l.curva[2], l.curva[3]]];
+      if (!dentro(p[0][0], p[0][1]) && !dentro(p[p.length - 1][0], p[p.length - 1][1])) continue;
+      const ap = filtro && !pasa(l.a) && !pasa(l.b);
+      ctx.globalAlpha = ap ? 0.2 : 1; ctx.strokeStyle = l.pt ? "#6a6e78" : "#3a3f4a"; ctx.setLineDash(l.pt ? [6, 6] : []);
+      ctx.beginPath();
+      if (l.curva) { const [x1, y1, x2, y2] = l.curva, ym = (y1 + y2) / 2; ctx.moveTo(x1, y1); ctx.bezierCurveTo(x1, ym, x2, ym, x2, y2); }
+      else { ctx.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length; i++) ctx.lineTo(p[i][0], p[i][1]); }
+      ctx.stroke();
+    }
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+  for (const n of nodos) { if (n.x + W / 2 < vx0 || n.x - W / 2 > vx1 || n.y > vy1 || n.y + H + R < vy0) continue; dibujarNodo(n, k, filtro); }
+  ctx.globalAlpha = 1;
+}
+function dibujarNodo(n, k, filtro) {
+  const p = n.p, x = n.x - W / 2, y = n.y, s = SECTORES[p.s], e = estatusDe(p), apag = filtro && !pasa(p), abierta = idAbierto === p.id, hover = idHover === p.id;
+  ctx.globalAlpha = apag ? 0.18 : 1;
+  if (k < 0.08) {
+    // De lejos: un punto por puesto, del color de su sector; más vivo si ya se está contratando o está contratado
+    const mw = Math.max(W, 1.4 / k), mh = Math.max(H, 1.4 / k);
+    ctx.fillStyle = e === "pausado" ? s.c : ESTATUS[e].c; if (e === "pausado" && !apag) ctx.globalAlpha = 0.55;
+    ctx.fillRect(x, y, mw, mh);
+    if (abierta || hover) { ctx.globalAlpha = 1; ctx.strokeStyle = "#e6e8ec"; ctx.lineWidth = 2 / k; ctx.strokeRect(x - 2 / k, y - 2 / k, mw + 4 / k, mh + 4 / k); }
+    ctx.globalAlpha = 1; return;
+  }
+  caja(x, y, W, H, 12); ctx.fillStyle = s.c; ctx.fill();
+  caja(x + 4, y, W - 4, H, 12); ctx.fillStyle = hover ? "#161920" : "#111318"; ctx.fill();
+  caja(x, y, W, H, 12); ctx.lineWidth = abierta || hover || (filtro && !apag) ? 2.5 : 1; ctx.strokeStyle = abierta ? "#e6e8ec" : hover || (filtro && !apag) ? s.c : "#23262e"; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x + W - 16, y + 15, 6.5, 0, Math.PI * 2); ctx.fillStyle = ESTATUS[e].c; ctx.fill();
+  ctx.beginPath(); ctx.arc(x + W - 16, y + 15, 9.5, 0, Math.PI * 2); ctx.strokeStyle = ESTATUS[e].c; ctx.lineWidth = 1; ctx.globalAlpha *= 0.35; ctx.stroke(); ctx.globalAlpha = apag ? 0.18 : 1;
+  if (k >= 0.22) {
+    ctx.textBaseline = "top"; ctx.textAlign = "left"; ctx.fillStyle = "#e6e8ec"; ctx.font = FUENTE_T;
+    const lt = lineas(p.t, FUENTE_T, W - 40, 2); lt.forEach((l, i) => ctx.fillText(l, x + 12, y + 8 + i * 16));
+    let yk = y + 8 + lt.length * 16 + 3; const per = estado[p.id];
+    if (e === "contratado" && per?.nombre) {
+      const img = per.foto ? imagen(per.foto) : null;
+      if (img) { ctx.save(); ctx.beginPath(); ctx.arc(x + 24, yk + 12, 12, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(img, x + 12, yk, 24, 24); ctx.restore(); }
+      else { ctx.beginPath(); ctx.arc(x + 24, yk + 12, 12, 0, Math.PI * 2); ctx.fillStyle = "#161920"; ctx.fill(); ctx.fillStyle = s.c; ctx.font = FUENTE_N; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(iniciales(per.nombre), x + 24, yk + 12); ctx.textAlign = "left"; ctx.textBaseline = "top"; }
+      ctx.fillStyle = "#e6e8ec"; ctx.font = "600 12px Inter, system-ui, sans-serif"; ctx.fillText(lineas(per.nombre, "600 12px Inter, system-ui, sans-serif", W - 60, 1)[0], x + 42, yk + 5);
+    } else {
+      ctx.fillStyle = "#a9b0bb"; ctx.font = FUENTE_K;
+      lineas(p.kpi, FUENTE_K, W - 26, 2).forEach((l, i) => ctx.fillText(l, x + 12, yk + i * 14.5));
+    }
+    ctx.font = FUENTE_P; ctx.textBaseline = "alphabetic"; ctx.fillStyle = s.c; ctx.fillText(String(p.n), x + 12, y + H - 8);
+    ctx.fillStyle = "#8a919c"; ctx.fillText(lineas("· " + NIVELES[p.n], FUENTE_P, W - 120, 1)[0], x + 12 + ctx.measureText(String(p.n)).width + 2, y + H - 8);
+    ctx.textAlign = "right"; const t = total(p.id); ctx.fillText(t > 1 ? fmt(t) + " plazas" : "Ola " + p.ola, x + W - 10, y + H - 8); ctx.textAlign = "left";
+  }
+  if (n.nh) {
+    const ab = abiertos.has(p.id);
+    ctx.beginPath(); ctx.arc(n.x, y + H, R, 0, Math.PI * 2); ctx.fillStyle = "#161920"; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = hover ? "#b08d57" : "#23262e"; ctx.stroke();
+    if (k >= 0.2) { ctx.fillStyle = ab ? "#a9b0bb" : "#e6e8ec"; ctx.font = FUENTE_N; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(ab ? "−" : String(n.nh), n.x, y + H); ctx.textAlign = "left"; }
+  }
+  ctx.globalAlpha = 1;
+}
+function limites(ns) {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const n of ns) { if (n.x - W / 2 < x0) x0 = n.x - W / 2; if (n.x + W / 2 > x1) x1 = n.x + W / 2; if (n.y < y0) y0 = n.y; if (n.y + H > y1) y1 = n.y + H; }
+  return { x0, x1, y0, y1 };
+}
+function ajustar(animar, ms = 500) {
+  if (!ultimaRaiz || !lienzo) return;
+  const ancho = lienzo.clientWidth, alto = lienzo.clientHeight; if (!ancho || !alto) return;
+  const b = limites(nodos), bw = b.x1 - b.x0 + 60, bh = b.y1 - b.y0 + 60;
+  const k = Math.max(0.0004, Math.min(ancho / bw, alto / bh, 1.1));
   const t = d3.zoomIdentity.translate(ancho / 2 - k * (b.x0 + b.x1) / 2, alto / 2 - k * (b.y0 + b.y1) / 2).scale(k);
-  (animar ? svg.transition().duration(500) : svg).call(zoom.transform, t);
+  (animar ? d3.select(lienzo).transition().duration(ms).ease(d3.easeCubicInOut) : d3.select(lienzo)).call(zoom.transform, t);
 }
 function ajustarA(n) {
-  const el = svg.node(), ancho = el.clientWidth, alto = el.clientHeight;
-  const k = Math.max(0.6, Math.min(1, d3.zoomTransform(el).k));
+  const ancho = lienzo.clientWidth, alto = lienzo.clientHeight;
+  const k = Math.max(0.6, Math.min(1, T.k));
   const t = d3.zoomIdentity.translate(ancho / 2 - k * n.x, alto * 0.35 - k * (n.y + H / 2)).scale(k);
-  svg.transition().duration(500).call(zoom.transform, t);
+  d3.select(lienzo).transition().duration(600).ease(d3.easeCubicInOut).call(zoom.transform, t);
 }
 function verEnArbol(id) {
   for (const a of ruta(id)) if (a.id !== id) abiertos.add(a.id);
@@ -304,6 +402,41 @@ function montarTablero() {
   $("#csv").addEventListener("click", descargarCSV);
 }
 
+// El siguiente puesto que falta, en orden de importancia (respeta sector y ola del filtro)
+function faltantes() { return universo().filter((x) => estatusDe(x) !== "contratado" && (!F.sectores.size || F.sectores.has(x.s)) && (!F.ola || x.ola === F.ola)).sort((a, b) => importancia(a) - importancia(b)); }
+function siguiente(id) { const f = faltantes(); return f.find((x) => x.id !== id) || null; }
+function irSiguiente(id) { const x = siguiente(id); if (!x) return aviso("No falta nadie con estos filtros.", true); if (vistaActiva() === "arbol") verEnArbol(x.id); abrir(x.id); }
+
+// ---------------------------------------------------------------------------------------------
+// RLR · la pestaña Reclutar: qué hacer, en qué orden, y los siguientes puestos
+function pintarReclutar() {
+  const f = faltantes(), abiertas = f.filter((x) => estatusDe(x) === "contratacion"), porAbrir = f.filter((x) => estatusDe(x) === "pausado").slice(0, 11);
+  const olas = OLAS.slice(1).map((o, i) => {
+    if (i === 5) { const gen = Object.entries(estado).filter(([id]) => id.includes("~")); return { o, t: TOTAL - PUESTOS.length, c: gen.filter(([, v]) => v.estatus === "contratado").length, e: gen.filter(([, v]) => v.estatus === "contratacion").length }; }
+    const lista = PUESTOS.filter((x) => x.ola === i + 1); return { o, t: lista.length, c: lista.filter((x) => estatusDe(x) === "contratado").length, e: lista.filter((x) => estatusDe(x) === "contratacion").length };
+  });
+  const tarj = (x, accion) => { const s = SECTORES[x.s], e = estatusDe(x); return `<div class="tarj" data-id="${esc(x.id)}" style="--c:${s.c}"><div class="t"><i class="pt e-${e}"></i> ${esc(x.t)}</div><div class="k">${esc(x.kpi)}</div><div class="m"><span>${esc(s.n)} · nivel ${x.n} · ${esc(OLAS[x.ola] || "Ola " + x.ola)}</span></div><div class="acc">${accion}</div></div>`; };
+  $("#reclutar").innerHTML = `
+    <div class="pasos">
+      <div class="paso"><span class="num">1</span><b>🔎 Encuentra tu siguiente puesto</b><p>La lista de abajo va en orden de importancia: primero la ola, luego el rango, luego el orden del organigrama. Nadie elige por simpatía qué puesto llenar.</p></div>
+      <div class="paso"><span class="num">2</span><b>📣 Abre la vacante</b><p>Entra a la ficha y márcala «En contratación». Esa es la señal para publicarla en la Bolsa Nacional de Puestos con su KPI, su sueldo y su prueba.</p></div>
+      <div class="paso"><span class="num">3</span><b>🧪 Corre el proceso</b><p>Prueba de trabajo real y ciega, lectura de personas, verificación de cada línea del currículum, declaración de conflictos. Cero por amigos: entra el mejor del proceso.</p></div>
+      <div class="paso"><span class="num">4</span><b>✅ Cierra con expediente</b><p>Nombre, foto, currículum y por qué esta persona. Márcalo «Contratado». Cualquiera podrá ver por qué se contrató.</p></div>
+    </div>
+    <div class="olas">${olas.map((o, i) => `<div class="ola-fila"><span class="ola-n">${esc(o.o)}</span><div class="barra"><i style="width:${o.t ? (o.c / o.t) * 100 : 0}%"></i><i class="ec" style="width:${o.t ? (o.e / o.t) * 100 : 0}%"></i></div><span class="ola-c">${o.c} de ${fmt(o.t)} contratados${o.e ? ` · ${o.e} en contratación` : ""}</span></div>`).join("")}</div>
+    <div class="dos">
+      <section><h2>📣 Vacantes abiertas <small>${fmt(abiertas.length)}</small></h2><p class="sub">Ya están en contratación: toca una para cerrar el proceso con nombre, foto, currículum y porqué.</p>${abiertas.length ? abiertas.slice(0, 33).map((x) => tarj(x, `<button type="button" class="boton sec" data-ir="${esc(x.id)}">🗂 Abrir ficha</button>`)).join("") : `<p class="vacio">Ninguna vacante abierta con estos filtros.</p>`}</section>
+      <section><h2>⏳ Siguientes por abrir <small>${fmt(f.filter((x) => estatusDe(x) === "pausado").length)}</small></h2><p class="sub">Los once que siguen, en orden. Abre la vacante desde aquí o entra a la ficha.</p>${porAbrir.length ? porAbrir.map((x) => tarj(x, `<button type="button" class="boton" data-vacante="${esc(x.id)}" ${yo ? "" : 'disabled title="Entra con tu cuenta para abrir vacantes"'}>📣 Abrir vacante</button><button type="button" class="boton sec" data-ir="${esc(x.id)}">🗂 Abrir ficha</button>`)).join("") : `<p class="vacio">No queda nadie por abrir con estos filtros.</p>`}</section>
+    </div>`;
+}
+function montarReclutar() {
+  $("#reclutar").addEventListener("click", async (e) => {
+    const v = e.target.closest("[data-vacante]"); if (v) { if (!yo) return; await guardar(v.dataset.vacante, { estatus: "contratacion" }); return pintarReclutar(); }
+    const ir = e.target.closest("[data-ir]"); if (ir) return abrir(ir.dataset.ir);
+    const t = e.target.closest(".tarj"); if (t) abrir(t.dataset.id);
+  });
+}
+
 // ---------------------------------------------------------------------------------------------
 // RLR · la ficha del puesto
 async function guardar(id, cambios) {
@@ -313,7 +446,7 @@ async function guardar(id, cambios) {
     if (!r.ok) throw new Error(await r.text());
     estado[id] = await r.json();
     refrescar(false); if (idAbierto === id) pintarFicha();
-    aviso("Guardado.");
+    aviso(cambios.estatus === "contratacion" ? "Vacante abierta." : cambios.estatus === "contratado" ? "Contratado. Sigue con el que falta." : "Guardado.");
   } catch (e) { aviso("No se pudo guardar: " + e.message, true); }
 }
 async function subir(id, tipo, archivo) {
@@ -332,7 +465,7 @@ async function subir(id, tipo, archivo) {
 }
 let avisoT = null;
 function aviso(texto, error) {
-  const el = $("#ficha-aviso"); if (!el) return;
+  const el = $("#ficha-aviso") || $("#aviso-global"); if (!el) return;
   el.textContent = texto; el.className = error ? "err" : "ok"; clearTimeout(avisoT); avisoT = setTimeout(() => { el.textContent = ""; }, 4000);
 }
 function abrir(id) {
@@ -351,6 +484,10 @@ async function pintarFicha() {
     <div class="ruta">${ruta(x.id).slice(0, -1).map((a) => `<button type="button" data-ir="${esc(a.id)}">${esc(corto(a.t))}</button><span>›</span>`).join("")}</div>
     <h2>${esc(x.t)}</h2>
     <div class="etiquetas"><span class="sec">${esc(s.n)} · ${esc(s.lado)}</span><span>Nivel ${x.n} · ${esc(NIVELES[x.n])}</span><span>${esc(OLAS[x.ola] || "Ola " + x.ola)}</span>${total(x.id) > 1 ? `<span>${fmt(total(x.id))} plazas en su línea</span>` : ""}${x.punteada ? `<span>Línea punteada: ${esc(x.punteada)}</span>` : ""}</div>
+    <div class="bloque paso-sig e-${e}"><span class="eti">Siguiente paso</span>${
+      e === "pausado" ? `<p>El proceso no se ha abierto. Al abrir la vacante se publica en la Bolsa Nacional de Puestos con su KPI.</p><div class="acciones"><button type="button" class="boton" data-estatus="contratacion" ${editor ? "" : "disabled"}>📣 Abrir vacante</button></div>`
+      : e === "contratacion" ? `<p>La vacante está abierta. Corre el proceso (prueba ciega, lectura, verificación) y, con la persona elegida, captura nombre, foto, currículum y el porqué; luego márcala contratada.</p><div class="acciones"><button type="button" class="boton" data-estatus="contratado" ${editor ? "" : "disabled"}>✅ Marcar contratado</button><button type="button" class="boton sec" data-estatus="pausado" ${editor ? "" : "disabled"}>⏸ Pausar</button></div>`
+      : `<p>Puesto cubierto${p.nombre ? ` por <b>${esc(p.nombre)}</b>` : ""}. Sigue con el que falta.</p><div class="acciones"><button type="button" class="boton" id="f-sig">➡ Siguiente puesto por reclutar</button></div>`}</div>
     <div class="bloque"><span class="eti">KPI principal</span><div class="kpi-grande">${esc(x.kpi)}</div></div>
     ${x.nota ? `<div class="bloque"><span class="eti">Por qué existe este puesto</span><div class="nota">${esc(x.nota)}</div></div>` : ""}
     <div class="bloque"><span class="eti">Estatus</span>
@@ -362,20 +499,27 @@ async function pintarFicha() {
       <label class="campo">Nombre completo<input type="text" id="f-nombre" value="${esc(p.nombre || "")}" ${editor ? "" : "disabled"} placeholder="Como aparece en su expediente"></label>
       <label class="campo">Por qué se contrató a esta persona (el expediente, en una o dos frases)<textarea id="f-porque" ${editor ? "" : "disabled"} placeholder="Puntaje en la prueba de trabajo, lectura de personas, trayectoria verificada…">${esc(p.porque || "")}</textarea></label>
       <div class="archivos">
-        ${editor ? `<label>Subir foto<input type="file" id="f-foto" accept="image/jpeg,image/png,image/webp"></label><label>Subir currículum (PDF)<input type="file" id="f-cv" accept="application/pdf"></label>` : ""}
-        ${p.cv ? `<button type="button" id="f-vercv">Ver currículum aquí</button><a href="${esc(p.cv)}${pase() ? "?pase=" + encodeURIComponent(pase()) : ""}" download>Descargar currículum (PDF)</a>` : `<span class="mut" style="font-size:12.5px;align-self:center">Sin currículum${yo ? "" : " · se ve con sesión"}</span>`}
+        ${editor ? `<label>📷 Subir foto<input type="file" id="f-foto" accept="image/jpeg,image/png,image/webp"></label><label>📄 Subir currículum (PDF)<input type="file" id="f-cv" accept="application/pdf"></label>` : ""}
+        ${p.cv ? `<button type="button" id="f-vercv">👁 Ver currículum aquí</button><a href="${esc(p.cv)}${pase() ? "?pase=" + encodeURIComponent(pase()) : ""}" download>⬇ Descargar currículum (PDF)</a>` : `<span class="mut" style="font-size:12.5px;align-self:center">Sin currículum${yo ? "" : " · se ve con sesión"}</span>`}
       </div>
       <div id="f-cvmarco"></div>
-      <div class="acciones">${editor ? `<button type="button" class="boton" id="f-guardar">Guardar persona</button>` : ""}<span id="ficha-aviso"></span></div>
+      <div class="acciones">${editor ? `<button type="button" class="boton" id="f-guardar">💾 Guardar persona</button>` : ""}<span id="ficha-aviso"></span></div>
     </div>
     ${hs.length ? `<div class="bloque"><span class="eti">Dirige a ${hs.length}</span><div class="dirige">${hs.map((h) => `<button type="button" data-ir="${esc(h.id)}"><i class="pt e-${estatusDe(h)}"></i><span style="flex:1">${esc(h.t)}</span><small>${total(h.id) > 1 ? fmt(total(h.id)) : ""}</small></button>`).join("")}</div></div>` : ""}
     ${padre ? `<div class="bloque"><span class="eti">Reporta a</span><div class="dirige"><button type="button" data-ir="${esc(padre.id)}"><i class="pt e-${estatusDe(padre)}"></i><span style="flex:1">${esc(padre.t)}</span></button></div></div>` : ""}
     <div class="bloque"><span class="eti">Bitácora</span><div class="bitacora" id="f-bitacora">Cargando…</div></div>
-    <div class="acciones"><button type="button" class="boton sec" id="f-arbol">Ver en el árbol</button><button type="button" class="boton sec" id="f-liga">Copiar liga</button></div>`;
+    <div class="acciones"><button type="button" class="boton sec" id="f-arbol">🌳 Ver en el árbol</button><button type="button" class="boton sec" id="f-liga">🔗 Copiar liga</button><button type="button" class="boton sec" id="f-sig2">➡ Siguiente puesto</button></div>`;
   const c = $("#ficha-c");
   c.addEventListener("click", (ev) => {
     const ir = ev.target.closest("[data-ir]"); if (ir) return abrir(ir.dataset.ir);
-    const be = ev.target.closest("[data-estatus]"); if (be && editor) return guardar(x.id, { estatus: be.dataset.estatus });
+    const be = ev.target.closest("[data-estatus]");
+    if (be && editor) {
+      const cambios = { estatus: be.dataset.estatus }, nombre = $("#f-nombre").value.trim(), porque = $("#f-porque").value.trim();
+      if (nombre !== (p.nombre || "")) cambios.nombre = nombre; if (porque !== (p.porque || "")) cambios.porque = porque;
+      if (be.dataset.estatus === "contratado" && !nombre) { aviso("Pon primero el nombre de la persona contratada.", true); $("#f-nombre").focus(); return; }
+      return guardar(x.id, cambios);
+    }
+    if (ev.target.closest("#f-sig, #f-sig2")) return irSiguiente(x.id);
   });
   $("#f-arbol", c).addEventListener("click", () => verEnArbol(x.id));
   $("#f-liga", c).addEventListener("click", async () => { try { await navigator.clipboard.writeText(location.origin + "/#p=" + encodeURIComponent(x.id)); aviso("Liga copiada."); } catch { aviso("No se pudo copiar.", true); } });
@@ -413,6 +557,7 @@ function verVista(v) {
   if (v === "arbol") { pintarArbol(); setTimeout(() => ajustar(false), 30); }
   if (v === "lista") pintarLista();
   if (v === "tablero") pintarTablero();
+  if (v === "reclutar") pintarReclutar();
   if (v === "logica" && !$("#articulo").dataset.listo) { $("#articulo").dataset.listo = "1"; pintarDoc("LOGICA.md"); }
 }
 function vistaActiva() { return $(".vista.activa")?.id.slice(2) || "arbol"; }
@@ -426,6 +571,7 @@ function refrescar(porFiltro) {
   }
   if (v === "lista") pintarLista();
   if (v === "tablero") pintarTablero();
+  if (v === "reclutar") pintarReclutar();
 }
 function montarTexto() {
   const pasos = [90, 100, 112, 125, 145];
@@ -436,13 +582,13 @@ function montarTexto() {
   aplicar();
 }
 async function arrancar() {
-  montarFiltros(); montarArbol(); montarTablero(); montarTexto();
+  montarFiltros(); montarArbol(); montarTablero(); montarReclutar(); montarTexto();
   $$(".pestanas button").forEach((b) => b.addEventListener("click", () => verVista(b.dataset.v)));
   $("#docs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; $$("button", e.currentTarget).forEach((x) => x.setAttribute("aria-pressed", x === b)); pintarDoc(b.dataset.d); });
   $("#ficha-cerrar").addEventListener("click", cerrarFicha);
   await cargarEstado();
   pintarResumen(); pintarArbol(); ajustar(false);
-  const sesion = async () => { await quienSoy(); if (idAbierto) pintarFicha(); if (vistaActiva() === "tablero") pintarTablero(); };
+  const sesion = async () => { await quienSoy(); if (idAbierto) pintarFicha(); if (vistaActiva() === "tablero") pintarTablero(); if (vistaActiva() === "reclutar") pintarReclutar(); };
   const engancharLogin = () => { if (window.LoginCT) { LoginCT.al(sesion); return true; } return false; };
   if (!engancharLogin()) { let n = 0; const t = setInterval(() => { if (engancharLogin() || ++n > 40) clearInterval(t); }, 250); }
   const porLiga = () => { const m = location.hash.match(/p=([^&]+)/); if (!m) return; const id = decodeURIComponent(m[1]); if (porId(id) && id !== idAbierto) { verEnArbol(id); abrir(id); } };
