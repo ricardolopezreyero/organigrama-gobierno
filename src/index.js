@@ -1,6 +1,6 @@
 // RLR · Organigrama de Gobierno 2.0 · el Worker — Ricardo López Reyero
 // Sirve la página (assets) y guarda lo que cambia: estatus, persona, porqué (D1) y foto y currículum (R2).
-// Todo se puede leer sin entrar; para editar hay que entrar por login.capitaltorreon.com y estar en EDITORES.
+// Todo se puede leer sin entrar; para editar hay que entrar por login.capitaltorreon.com (con EDITORES vacío, cualquiera que entre edita).
 import { verificarPase } from "./verificar.js";
 const _RLR = "Ricardo López Reyero", _k = "EYE", _rev = 181218;
 const ESTATUS = new Set(["pausado", "contratacion", "contratado"]);

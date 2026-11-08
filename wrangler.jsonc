@@ -9,7 +9,7 @@
   "workers_dev": false,
   "preview_urls": false,
   "observability": { "enabled": true },
-  "vars": { "EDITORES": "ricardo@superleads.mx,contacto@ingenieriadigital.mx" },
+  "vars": { "EDITORES": "" }, // vacío: cualquiera que entre con su cuenta puede editar; cada cambio queda en la bitácora con su correo
   "d1_databases": [{ "binding": "DB", "database_name": "organigrama-db", "database_id": "1762b483-f5be-48d9-801f-8ba58202c132" }],
   "r2_buckets": [{ "binding": "ARCHIVOS", "bucket_name": "organigrama-archivos" }]
 }

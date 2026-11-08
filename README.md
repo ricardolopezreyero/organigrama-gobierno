@@ -40,9 +40,9 @@ Proyecto de **Ricardo López Reyero**. El edificio donde vive este organigrama: 
 - **Árbol**: arrastra, acerca con la rueda, toca el puntito o la tarjeta para abrir el puesto, toca el número bajo una tarjeta para desplegar a quién dirige. «Desplegar hasta» abre todo un nivel; «Pantalla gigante» quita todo lo demás (para la pantalla del edificio).
 - **Filtros**: búsqueda, nivel (directivos, mandos medios, operativos), estatus (los que faltan, en contratación, pausados, contratados), sector y ola. El árbol despliega solo el camino a cada coincidencia.
 - **Lista**: en orden de importancia (ola, rango, orden del organigrama), con descarga a CSV.
-- **Tablero**: tres columnas por estatus; quien tiene acceso de reclutador arrastra las tarjetas.
+- **Tablero**: tres columnas por estatus; con tu cuenta arrastras las tarjetas.
 - **Ficha**: KPI, por qué existe el puesto, estatus, persona (nombre, foto, currículum en PDF, por qué se contrató), a quién dirige, a quién reporta, bitácora, liga para compartir.
-- **Entrar**: con la cuenta de la casa (arriba a la derecha, [login.capitaltorreon.com](https://login.capitaltorreon.com)). Todo se ve sin entrar; editar requiere estar en `EDITORES` (wrangler.jsonc). El currículum se ve solo con sesión.
+- **Entrar**: con la cuenta de Google (arriba a la derecha, a través de [login.capitaltorreon.com](https://login.capitaltorreon.com)). Todo se ve sin entrar; **cualquiera que entre puede editar** y cada cambio queda en la bitácora con su correo. Si algún día hace falta cerrar la edición, basta poner correos en `EDITORES` (wrangler.jsonc). El currículum se ve solo con sesión.
 
 ## Desarrollo y publicación
 

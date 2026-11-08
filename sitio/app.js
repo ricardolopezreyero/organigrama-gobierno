@@ -307,7 +307,7 @@ function montarTablero() {
 // ---------------------------------------------------------------------------------------------
 // RLR · la ficha del puesto
 async function guardar(id, cambios) {
-  if (!yo?.editor) return aviso("Solo quien tiene acceso de reclutador puede editar.", true);
+  if (!yo?.editor) return aviso("Entra con tu cuenta para editar.", true);
   try {
     const r = await fetch("/api/puesto/" + encodeURIComponent(id), { method: "PUT", headers: cab({ "content-type": "application/json" }), body: JSON.stringify(cambios) });
     if (!r.ok) throw new Error(await r.text());
@@ -318,7 +318,7 @@ async function guardar(id, cambios) {
 }
 async function subir(id, tipo, archivo) {
   if (!archivo) return;
-  if (!yo?.editor) return aviso("Solo quien tiene acceso de reclutador puede subir archivos.", true);
+  if (!yo?.editor) return aviso("Entra con tu cuenta para subir archivos.", true);
   const tope = tipo === "foto" ? 4 : 12;
   if (archivo.size > tope * 1024 * 1024) return aviso(`El archivo pasa de ${tope} MB.`, true);
   aviso("Subiendo…");
@@ -355,7 +355,7 @@ async function pintarFicha() {
     ${x.nota ? `<div class="bloque"><span class="eti">Por qué existe este puesto</span><div class="nota">${esc(x.nota)}</div></div>` : ""}
     <div class="bloque"><span class="eti">Estatus</span>
       <div class="estatus">${Object.entries(ESTATUS).map(([k, v]) => `<button type="button" data-estatus="${k}" aria-pressed="${k === e}" style="--e:${v.c}" ${editor ? "" : "disabled"} title="${esc(v.d)}"><i class="pt e-${k}"></i>${v.n}</button>`).join("")}</div>
-      ${editor ? "" : `<p class="aviso" style="margin:10px 0 0">${yo ? "Tu cuenta no tiene acceso de reclutador: puedes ver todo, no editar." : "Para editar el estatus o la persona, entra con tu cuenta (arriba a la derecha)."}</p>`}
+      ${editor ? "" : `<p class="aviso" style="margin:10px 0 0">${yo ? "Tu cuenta no tiene acceso de edición: puedes ver todo, no editar." : "Para editar el estatus o la persona, entra con tu cuenta (arriba a la derecha). Cualquiera que entre puede editar; cada cambio queda en la bitácora con su correo."}</p>`}
     </div>
     <div class="bloque"><span class="eti">Quién ocupa el puesto</span>
       <div class="persona-cab">${p.foto ? `<img src="${esc(p.foto)}" alt="">` : `<span class="ini">${p.nombre ? esc(iniciales(p.nombre)) : "?"}</span>`}<div>${p.nombre ? `<div class="nom">${esc(p.nombre)}</div>` : `<div class="sin">Nadie todavía.</div>`}${p.actualizado ? `<div class="sin">Actualizado ${new Date(p.actualizado).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })}${p.por ? " · " + esc(p.por) : ""}</div>` : ""}</div></div>
