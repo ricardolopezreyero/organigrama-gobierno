@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<!--
+  RLR · Organigrama de Gobierno 2.0 — organigrama.capitaltorreon.com
+  Proyecto de Ricardo López Reyero. El árbol completo del gobierno con un KPI por puesto,
+  del Director de México al último analista, y la herramienta para llenarlo sin amiguismo.
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="author" content="Ricardo López Reyero">
+<meta name="build" content="eye">
+<meta name="rev" content="181218">
+<meta name="theme-color" content="#0b0c10">
+<title>Organigrama de Gobierno 2.0</title>
+<meta name="description" content="El organigrama completo del Gobierno 2.0 de México: 566 puestos nombrados con un KPI cada uno, del Director de México al último analista, en un árbol con zoom. Quién dirige a quién, qué estatus tiene cada puesto y quién lo ocupa. Proyecto de Ricardo López Reyero.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CapitalTorreon">
+<meta property="og:title" content="Organigrama de Gobierno 2.0">
+<meta property="og:description" content="566 puestos con un KPI cada uno, del Director de México al último analista. Quién dirige a quién y quién ocupa cada puesto. Proyecto de Ricardo López Reyero.">
+<meta property="og:url" content="https://organigrama.capitaltorreon.com">
+<meta property="og:image" content="https://organigrama.capitaltorreon.com/img/og.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://organigrama.capitaltorreon.com/img/og.png?v=1">
+<link rel="icon" type="image/svg+xml" href="/img/marca.svg">
+<link rel="stylesheet" href="/estilo.css?v=1">
+</head>
+<body>
+<header class="barra">
+  <a class="marca" href="/" aria-label="Organigrama de Gobierno 2.0, inicio"><img src="/img/marca.svg" alt="" width="28" height="28"><span>Organigrama de Gobierno 2.0</span></a>
+  <nav class="pestanas" role="tablist" aria-label="Vistas">
+    <button type="button" role="tab" data-v="arbol" aria-selected="true">Árbol</button>
+    <button type="button" role="tab" data-v="lista" aria-selected="false">Lista</button>
+    <button type="button" role="tab" data-v="tablero" aria-selected="false">Tablero</button>
+    <button type="button" role="tab" data-v="logica" aria-selected="false">Lógica</button>
+  </nav>
+  <div class="tam" aria-label="Tamaño del texto"><button type="button" id="a-menos" title="Texto más chico">A−</button><button type="button" id="a-mas" title="Texto más grande">A+</button></div>
+  <a class="repo" href="https://github.com/ricardolopezreyero/organigrama-gobierno" target="_blank" rel="noopener">Repo</a>
+  <div class="login" data-login-ct></div>
+</header>
+
+<!-- RLR · filtros: para los reclutadores y para quien quiera entender la estructura -->
+<section class="filtros" id="filtros" aria-label="Filtros">
+  <input type="search" id="buscar" placeholder="Buscar puesto, KPI o persona…" aria-label="Buscar" autocomplete="off">
+  <div class="seg" data-f="nivel" role="group" aria-label="Nivel">
+    <button type="button" data-val="todos" aria-pressed="true">Todos</button>
+    <button type="button" data-val="directivos" aria-pressed="false">Directivos</button>
+    <button type="button" data-val="mandos" aria-pressed="false">Mandos medios</button>
+    <button type="button" data-val="operativos" aria-pressed="false">Operativos</button>
+  </div>
+  <div class="seg" data-f="estatus" role="group" aria-label="Estatus">
+    <button type="button" data-val="todos" aria-pressed="true">Todos</button>
+    <button type="button" data-val="faltan" aria-pressed="false">Los que faltan</button>
+    <button type="button" data-val="contratacion" aria-pressed="false"><i class="pt e-contratacion"></i>En contratación</button>
+    <button type="button" data-val="pausado" aria-pressed="false"><i class="pt e-pausado"></i>Pausados</button>
+    <button type="button" data-val="contratado" aria-pressed="false"><i class="pt e-contratado"></i>Contratados</button>
+  </div>
+  <div class="chips" id="sectores" role="group" aria-label="Sector"></div>
+  <select id="ola" aria-label="Ola de contratación"></select>
+  <button type="button" class="limpiar" id="limpiar" hidden>Quitar filtros</button>
+  <div class="resumen" id="resumen" aria-live="polite"></div>
+</section>
+
+<main>
+  <!-- RLR · el árbol: un lienzo gigante con zoom -->
+  <section class="vista activa" id="v-arbol">
+    <svg id="lienzo" role="img" aria-label="Árbol del organigrama"></svg>
+    <div class="herramientas" id="herramientas">
+      <button type="button" id="ajustar" title="Ver todo lo desplegado">Ajustar</button>
+      <label class="hasta">Desplegar hasta <select id="hasta" aria-label="Desplegar hasta nivel"></select></label>
+      <button type="button" id="colapsar" title="Dejar solo al Presidente y su mesa">Colapsar</button>
+      <button type="button" id="gigante" title="Para la pantalla gigante del edificio">Pantalla gigante</button>
+    </div>
+    <div class="leyenda" id="leyenda"></div>
+    <p class="pista" id="pista">Arrastra para mover · rueda para acercar · toca el puntito o la tarjeta para abrir el puesto · toca el número para desplegar</p>
+  </section>
+
+  <!-- RLR · la lista: en orden de importancia para reclutar -->
+  <section class="vista" id="v-lista">
+    <div class="wrap ancho">
+      <div class="encabezado"><div><h1>Los puestos, en orden de importancia</h1><p class="sub">Primero la ola, luego el rango, luego el orden del organigrama. Toca un renglón para abrir el puesto.</p></div><button type="button" id="csv" class="boton">Descargar CSV</button></div>
+      <div class="tabla-wrap"><table id="tabla"><thead><tr><th>#</th><th></th><th>Puesto</th><th>Reporta a</th><th>Nivel</th><th>Ola</th><th>KPI principal</th><th>Persona</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- RLR · el tablero: tres columnas por estatus -->
+  <section class="vista" id="v-tablero">
+    <div class="wrap ancho">
+      <div class="encabezado"><div><h1>El tablero de contratación</h1><p class="sub">Pausado, en contratación, contratado. Quien tiene acceso de reclutador puede arrastrar una tarjeta de una columna a otra.</p></div></div>
+      <div class="columnas" id="columnas"></div>
+    </div>
+  </section>
+
+  <!-- RLR · la lógica -->
+  <section class="vista" id="v-logica">
+    <div class="wrap doc">
+      <div class="seg docs" id="docs"><button type="button" data-d="LOGICA.md" aria-pressed="true">La lógica</button><button type="button" data-d="PROMPT.md" aria-pressed="false">El brief</button></div>
+      <div class="doc-cuerpo"><nav class="indice" id="indice" aria-label="Índice del documento"></nav><article id="articulo" class="md"><p class="mut">Cargando…</p></article></div>
+    </div>
+  </section>
+</main>
+
+<!-- RLR · la ficha del puesto -->
+<aside class="ficha" id="ficha" hidden aria-label="Ficha del puesto">
+  <button type="button" class="cerrar" id="ficha-cerrar" aria-label="Cerrar">×</button>
+  <div id="ficha-c"></div>
+</aside>
+
+<footer class="pie"><span>Proyecto de <strong>Ricardo López Reyero</strong> · CapitalTorreon · tercera versión · noviembre de 2026</span><a href="https://edificio.capitaltorreon.com" target="_blank" rel="noopener">El edificio donde vive este organigrama</a><a href="https://github.com/ricardolopezreyero/organigrama-gobierno" target="_blank" rel="noopener">Código y datos en GitHub</a></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
+<script src="https://login.capitaltorreon.com/login.js" defer></script>
+<script type="module" src="/app.js?v=1"></script>
+<!-- RLR · Ricardo López Reyero · EYE · 181218 -->
+</body>
+</html>

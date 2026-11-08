@@ -1,0 +1,6 @@
+{
+  "name": "organigrama-gobierno",
+  "private": true,
+  "type": "module",
+  "scripts": { "validar": "node datos/validar.mjs", "dev": "wrangler dev --port 8790 --local-upstream localhost:8790", "publicar": "./publicar.sh" }
+}

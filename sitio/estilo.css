@@ -1,0 +1,221 @@
+/* RLR · Organigrama de Gobierno 2.0 · estilos — Ricardo López Reyero */
+@font-face{font-family:"Inter";src:url(/fuentes/inter-latin.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Space Grotesk";src:url(/fuentes/space-grotesk-latin.woff2) format("woff2");font-weight:300 700;font-display:swap}
+:root{
+  --bg:#0b0c10;--card:#111318;--card2:#161920;--border:#23262e;--txt:#e6e8ec;--mut:#a9b0bb;--mut2:#8a919c;
+  --bronce:#b08d57;--verde:#3fb27f;--ambar:#d9a441;--gris:#7c8490;
+  --presidencia:#b08d57;--talento:#e0479e;--personas:#3fb27f;--orden:#c9573f;--economia:#d9a441;--territorio:#4f93c9;--esquinas:#9b6fd6;--autonomos:#8d8a82;
+  --texto:100%;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{font-size:var(--texto)}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{min-height:100dvh;display:flex;flex-direction:column;font-size:calc(15px * var(--texto) / 100%)}
+a{color:var(--bronce)}
+code{font:0.9em ui-monospace,Menlo,monospace;background:var(--card2);padding:1px 5px;border-radius:4px}
+h1,h2,h3{font-family:"Space Grotesk",Inter,sans-serif;letter-spacing:-.01em}
+h1{font-size:clamp(22px,2.6vw,32px);margin:0 0 4px}
+.sub{color:var(--mut);margin:0;max-width:70ch}
+.mut{color:var(--mut)}
+button{font:inherit}
+
+/* barra */
+.barra{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(11,12,16,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.marca{display:flex;align-items:center;gap:10px;color:var(--txt);text-decoration:none;font-family:"Space Grotesk";font-weight:600;font-size:17px;white-space:nowrap}
+.pestanas{display:flex;gap:4px;margin-left:auto;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:3px}
+.pestanas button{appearance:none;border:0;background:transparent;color:var(--mut);padding:7px 14px;border-radius:9px;font-weight:600;cursor:pointer}
+.pestanas button[aria-selected="true"]{background:var(--card2);color:var(--txt);box-shadow:inset 0 0 0 1px var(--border)}
+.tam{display:flex;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:2px}
+.tam button{appearance:none;border:0;background:transparent;color:var(--mut);padding:5px 9px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px}
+.tam button:hover{color:var(--txt)}
+.repo{font-size:13px;color:var(--mut);text-decoration:none;border:1px solid var(--border);border-radius:9px;padding:6px 10px}
+.repo:hover{color:var(--txt)}
+.login{min-width:34px;display:flex;align-items:center}
+
+/* filtros */
+.filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--card)}
+.filtros input[type=search]{appearance:none;background:var(--card2);border:1px solid var(--border);color:var(--txt);border-radius:10px;padding:8px 12px;min-width:240px;flex:1 1 240px;max-width:380px}
+.filtros input[type=search]:focus{outline:2px solid var(--bronce);outline-offset:1px}
+.seg{display:inline-flex;gap:3px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:3px;flex-wrap:wrap}
+.seg button{appearance:none;border:0;background:transparent;color:var(--mut);padding:6px 11px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.seg button[aria-pressed="true"]{background:var(--border);color:var(--txt)}
+.pt{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--gris)}
+.e-contratacion{background:var(--ambar)}.e-contratado{background:var(--verde)}.e-pausado{background:var(--gris)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{appearance:none;display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);color:var(--mut);border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer}
+.chips button i{width:9px;height:9px;border-radius:2px;display:inline-block;background:var(--c)}
+.chips button[aria-pressed="true"]{color:var(--txt);border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,var(--card2))}
+.filtros select{appearance:none;background:var(--card2);border:1px solid var(--border);color:var(--txt);border-radius:10px;padding:7px 28px 7px 11px;font:inherit;font-size:13px;font-weight:600;background-image:linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%);background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:5px 5px;background-repeat:no-repeat}
+.limpiar{appearance:none;background:transparent;border:1px dashed var(--border);color:var(--mut);border-radius:10px;padding:6px 11px;font-size:13px;cursor:pointer}
+.limpiar:hover{color:var(--txt)}
+.resumen{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--mut)}
+.resumen b{color:var(--txt);font-weight:700}
+.resumen .pt{margin-right:5px}
+
+main{flex:1;display:flex;flex-direction:column;min-height:0}
+.vista{display:none}
+.vista.activa{display:block}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 60px;width:100%}
+.wrap.ancho{max-width:1500px}
+.encabezado{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.boton{appearance:none;background:var(--bronce);border:0;color:#111;border-radius:9px;padding:9px 14px;font-weight:700;cursor:pointer}
+.boton.sec{background:var(--card2);color:var(--txt);border:1px solid var(--border)}
+.boton:disabled{opacity:.5;cursor:default}
+
+/* árbol */
+#v-arbol{position:relative;height:calc(100dvh - 53px - 58px);min-height:520px;display:none}
+#v-arbol.activa{display:block}
+#lienzo{position:absolute;inset:0;width:100%;height:100%;background:radial-gradient(1200px 700px at 50% 0,#12151c,#0b0c10 70%);cursor:grab;touch-action:none}
+#lienzo:active{cursor:grabbing}
+.liga{fill:none;stroke:#3a3f4a;stroke-width:1.6}
+.liga.punteada{stroke-dasharray:6 6;stroke:#6a6e78}
+.liga.apagada{opacity:.25}
+.tarjeta{width:100%;height:100%;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--c);border-radius:12px;padding:8px 10px 7px 12px;display:flex;flex-direction:column;gap:3px;overflow:hidden;color:var(--txt);font:12.5px/1.3 Inter,system-ui,sans-serif;position:relative;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.35);transition:opacity .2s,border-color .2s}
+.tarjeta:hover{border-color:var(--c)}
+.tarjeta.apagada{opacity:.22}
+.tarjeta.coincide{box-shadow:0 0 0 2px var(--c),0 6px 24px rgba(0,0,0,.35)}
+.tarjeta.abierta{box-shadow:0 0 0 2px var(--txt),0 6px 24px rgba(0,0,0,.35)}
+.tarjeta .punto{position:absolute;top:9px;right:9px;width:13px;height:13px;border-radius:50%;background:var(--gris);box-shadow:0 0 0 3px color-mix(in srgb,var(--gris) 30%,transparent)}
+.tarjeta.e-contratacion .punto{background:var(--ambar);box-shadow:0 0 0 3px color-mix(in srgb,var(--ambar) 30%,transparent)}
+.tarjeta.e-contratado .punto{background:var(--verde);box-shadow:0 0 0 3px color-mix(in srgb,var(--verde) 30%,transparent)}
+.tarjeta .cuerpo{min-height:0;overflow:hidden}
+.tarjeta .titulo{flex:none;font-weight:700;font-size:13px;line-height:1.25;padding-right:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tarjeta .kpi{flex:none;color:var(--mut);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11.5px;line-height:1.25}
+.tarjeta .persona{flex:none;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--txt)}
+.tarjeta .persona img,.tarjeta .persona .ini{width:24px;height:24px;border-radius:50%;object-fit:cover;background:var(--card2);display:inline-grid;place-items:center;font-weight:700;color:var(--c);font-size:11px;flex:none}
+.tarjeta .pie{flex:none;margin-top:auto;display:flex;justify-content:space-between;gap:6px;font-size:10.5px;color:var(--mut2);letter-spacing:.02em}
+.tarjeta .pie b{color:var(--c);font-weight:700}
+.nodo .toggle{cursor:pointer}
+.nodo .toggle circle{fill:var(--card2);stroke:var(--border);stroke-width:1.5}
+.nodo .toggle:hover circle{stroke:var(--bronce)}
+.nodo .toggle text{fill:var(--txt);font:700 11px Inter,system-ui,sans-serif;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.nodo .toggle.abierto text{fill:var(--mut)}
+.herramientas{position:absolute;left:14px;bottom:14px;z-index:5;display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:rgba(17,19,24,.92);border:1px solid var(--border);border-radius:12px;padding:8px;backdrop-filter:blur(10px)}
+.herramientas button,.herramientas select{appearance:none;background:var(--card2);border:1px solid var(--border);color:var(--txt);border-radius:8px;padding:7px 11px;font-size:13px;font-weight:600;cursor:pointer}
+.herramientas button:hover{border-color:var(--bronce)}
+.herramientas #gigante{background:var(--bronce);color:#111;border-color:var(--bronce)}
+.hasta{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mut)}
+.leyenda{position:absolute;right:14px;bottom:14px;z-index:5;display:grid;gap:4px;background:rgba(17,19,24,.92);border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--mut);backdrop-filter:blur(10px)}
+.leyenda div{display:flex;align-items:center;gap:7px}
+.leyenda i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.leyenda i.sq{border-radius:2px}
+.leyenda .sep{height:1px;background:var(--border);margin:3px 0}
+.pista{position:absolute;left:50%;top:12px;transform:translateX(-50%);margin:0;font-size:12.5px;color:var(--mut);background:rgba(17,19,24,.8);border:1px solid var(--border);border-radius:999px;padding:5px 12px;pointer-events:none;white-space:nowrap;max-width:calc(100% - 28px);overflow:hidden;text-overflow:ellipsis}
+
+/* modo pantalla gigante */
+body.gigante .barra,body.gigante .filtros,body.gigante .pie,body.gigante .pista,body.gigante .leyenda{display:none}
+body.gigante #v-arbol{height:100dvh}
+body.gigante .herramientas{opacity:0;transition:opacity .3s}
+body.gigante .herramientas:hover,body.gigante .herramientas:focus-within{opacity:1}
+
+/* lista */
+.tabla-wrap{overflow:auto;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{position:sticky;top:0;background:var(--card2);color:var(--mut);font-size:12px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;z-index:1}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--card2)}
+td.num{color:var(--mut2);font-variant-numeric:tabular-nums;white-space:nowrap}
+td .t{font-weight:600}
+td .chip{display:inline-block;font-size:11px;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 50%,transparent);border-radius:999px;padding:1px 7px;margin-top:3px}
+td.kpi{color:var(--mut);max-width:420px}
+td .per{display:flex;align-items:center;gap:7px;white-space:nowrap}
+td .per img{width:24px;height:24px;border-radius:50%;object-fit:cover}
+.vacio{padding:30px;text-align:center;color:var(--mut)}
+
+/* tablero */
+.columnas{display:grid;grid-template-columns:repeat(3,minmax(260px,1fr));gap:14px;align-items:start}
+.col{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px;min-height:300px;display:grid;gap:8px;align-content:start}
+.col.sobre{outline:2px dashed var(--bronce)}
+.col h3{margin:2px 4px 6px;font-size:15px;display:flex;align-items:center;gap:8px}
+.col h3 .pt{width:11px;height:11px}
+.col h3 small{margin-left:auto;color:var(--mut);font-weight:500}
+.tarj{background:var(--card2);border:1px solid var(--border);border-left:4px solid var(--c);border-radius:10px;padding:9px 11px;cursor:pointer;display:grid;gap:3px}
+.tarj:hover{border-color:var(--c)}
+.tarj[draggable=true]{cursor:grab}
+.tarj .t{font-weight:600;font-size:13.5px}
+.tarj .k{font-size:12px;color:var(--mut);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tarj .m{font-size:11px;color:var(--mut2);display:flex;justify-content:space-between;gap:6px}
+.tarj .per{display:flex;align-items:center;gap:7px;font-size:12.5px}
+.tarj .per img{width:22px;height:22px;border-radius:50%;object-fit:cover}
+.col .mas{text-align:center;color:var(--mut);font-size:12.5px;padding:6px}
+
+/* ficha */
+.ficha{position:fixed;right:14px;top:66px;bottom:14px;z-index:30;width:min(440px,calc(100% - 28px));background:rgba(17,19,24,.97);border:1px solid var(--border);border-radius:16px;padding:18px 18px 20px;backdrop-filter:blur(12px);box-shadow:0 20px 60px rgba(0,0,0,.5);overflow:auto;border-top:4px solid var(--c,var(--bronce))}
+body.gigante .ficha{top:14px}
+.ficha .cerrar{position:absolute;top:10px;right:12px;appearance:none;background:var(--card2);border:1px solid var(--border);color:var(--txt);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1}
+.ficha .ruta{display:flex;flex-wrap:wrap;gap:4px;font-size:12px;color:var(--mut);margin:0 30px 10px 0}
+.ficha .ruta button{appearance:none;background:transparent;border:0;color:var(--mut);padding:0;cursor:pointer;font-size:12px;text-decoration:underline dotted}
+.ficha .ruta button:hover{color:var(--txt)}
+.ficha h2{margin:0 0 8px;font-size:20px;line-height:1.2;padding-right:20px}
+.ficha .etiquetas{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.ficha .etiquetas span{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:3px 9px;color:var(--mut)}
+.ficha .etiquetas span.sec{color:var(--c);border-color:color-mix(in srgb,var(--c) 50%,transparent)}
+.ficha .bloque{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.ficha .bloque .eti{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut2);font-weight:600;margin-bottom:5px}
+.ficha .kpi-grande{font-size:16px;line-height:1.35;font-weight:600;font-family:"Space Grotesk",Inter,sans-serif}
+.ficha .nota{color:var(--mut);font-size:13.5px}
+.ficha .estatus{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ficha .estatus button{appearance:none;background:var(--card);border:1px solid var(--border);color:var(--mut);border-radius:9px;padding:8px 6px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.ficha .estatus button[aria-pressed="true"]{color:var(--txt);border-color:var(--e);background:color-mix(in srgb,var(--e) 18%,var(--card))}
+.ficha .estatus button:disabled{cursor:default;opacity:.7}
+.ficha label.campo{display:grid;gap:4px;font-size:12px;color:var(--mut);margin-bottom:10px}
+.ficha input[type=text],.ficha textarea{appearance:none;background:var(--card);border:1px solid var(--border);color:var(--txt);border-radius:9px;padding:8px 10px;font:inherit;font-size:14px;width:100%}
+.ficha textarea{min-height:84px;resize:vertical}
+.ficha input:disabled,.ficha textarea:disabled{opacity:.8}
+.ficha .persona-cab{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.ficha .persona-cab img,.ficha .persona-cab .ini{width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--card);display:grid;place-items:center;font-size:22px;font-weight:700;color:var(--c);flex:none;border:1px solid var(--border)}
+.ficha .persona-cab .nom{font-weight:700;font-size:16px}
+.ficha .persona-cab .sin{color:var(--mut);font-size:13px}
+.ficha .archivos{display:flex;gap:6px;flex-wrap:wrap}
+.ficha .archivos label,.ficha .archivos a,.ficha .archivos button{appearance:none;display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);color:var(--txt);border-radius:9px;padding:7px 10px;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:none}
+.ficha .archivos label input{display:none}
+.ficha .archivos label:hover,.ficha .archivos a:hover,.ficha .archivos button:hover{border-color:var(--bronce)}
+.ficha .cv{width:100%;height:420px;border:1px solid var(--border);border-radius:9px;margin-top:8px;background:#fff}
+.ficha .acciones{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ficha .dirige{display:grid;gap:4px}
+.ficha .dirige button{appearance:none;text-align:left;background:var(--card);border:1px solid var(--border);color:var(--txt);border-radius:9px;padding:7px 10px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.ficha .dirige button:hover{border-color:var(--c)}
+.ficha .dirige button small{color:var(--mut);white-space:nowrap}
+.ficha .dirige button .pt{flex:none}
+.ficha .bitacora{font-size:12.5px;color:var(--mut);display:grid;gap:4px}
+.ficha .aviso{font-size:12.5px;color:var(--mut);border:1px dashed var(--border);border-radius:9px;padding:8px 10px}
+.ficha .ok{color:var(--verde);font-size:12.5px}
+.ficha .err{color:#e66767;font-size:12.5px}
+
+/* documento */
+.doc .docs{margin-bottom:18px}
+.doc-cuerpo{display:grid;grid-template-columns:240px 1fr;gap:28px;align-items:start}
+.indice{position:sticky;top:120px;display:grid;gap:2px;font-size:13px;max-height:calc(100dvh - 140px);overflow:auto}
+.indice a{color:var(--mut);text-decoration:none;padding:4px 8px;border-left:2px solid var(--border);display:block}
+.indice a:hover{color:var(--txt);border-color:var(--bronce)}
+.md{max-width:78ch;font-size:15.5px;line-height:1.65}
+.md h1{font-size:30px;margin:0 0 10px}
+.md h2{font-size:22px;margin:38px 0 10px;padding-top:10px;border-top:1px solid var(--border)}
+.md h3{font-size:17px;margin:24px 0 6px}
+.md table{display:block;overflow:auto;font-size:13.5px;margin:14px 0}
+.md th,.md td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top}
+.md th{background:var(--card2);color:var(--mut);font-size:12px;text-transform:none;letter-spacing:0;position:static}
+.md blockquote{margin:14px 0;padding:8px 14px;border-left:3px solid var(--bronce);color:var(--mut);background:var(--card)}
+.md hr{border:0;border-top:1px solid var(--border);margin:28px 0}
+.md li{margin:4px 0}
+
+/* pie */
+.pie{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid var(--border);font-size:14px;color:var(--mut);flex-wrap:wrap}
+.pie a{color:var(--mut);font-size:14.5px}
+.pie a:hover{color:var(--txt)}
+
+@media (max-width:900px){
+  .doc-cuerpo{grid-template-columns:1fr}.indice{display:none}
+  .columnas{grid-template-columns:1fr}
+  .pestanas button{padding:7px 10px}
+  .marca span{display:none}
+  .resumen{margin-left:0;width:100%}
+  #v-arbol{height:calc(100dvh - 53px - 140px)}
+  .ficha{right:0;left:0;top:auto;bottom:0;width:100%;max-height:78dvh;border-radius:16px 16px 0 0}
+  .herramientas{left:8px;right:8px;bottom:8px}
+  .leyenda{display:none}
+  .pista{display:none}
+}
+/* RLR · Ricardo López Reyero · EYE · 181218 */

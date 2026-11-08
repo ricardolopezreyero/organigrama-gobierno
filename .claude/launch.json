@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "organigrama", "runtimeExecutable": "npx", "runtimeArgs": ["wrangler", "dev", "--port", "8790", "--local-upstream", "localhost:8790"], "port": 8790 }
+  ]
+}
